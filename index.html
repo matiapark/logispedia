@@ -1,41 +1,31 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<link href="term_dictionary_favicon.ico" rel="icon" type="image/x-icon"/>
-<meta charset="utf-8"/>
-<title>물류용어 백과사전</title>
-<style>
-    /* --- HTML과 Body 높이 설정 --- */
+  <link href="term_dictionary_favicon.ico" rel="icon" type="image/x-icon"/>
+  <meta charset="utf-8"/>
+  <title>물류용어 백과사전</title>
+  <style>
     html, body {
       height: 100%;
       margin: 0;
     }
-    /* --- -------------------- --- */
-
     body {
       font-family: sans-serif;
       text-align: center;
-      /* --- Flexbox 레이아웃 설정 --- */
       display: flex;
       flex-direction: column;
-      /* --- -------------------- --- */
     }
-
-    /* --- 콘텐츠를 감싸는 Wrapper 추가 --- */
     .content-wrapper {
-      flex: 1 0 auto; /* 콘텐츠 영역이 남은 공간을 모두 차지하도록 설정 */
+      flex: 1 0 auto;
       max-width: 800px;
       margin: 20px auto;
       width: 100%;
     }
-    /* --- ------------------------- --- */
-
-
     #searchBox {
       width: 100%;
       padding: 10px;
       font-size: 16px;
-      box-sizing: border-box; /* padding이 너비에 포함되도록 설정 */
+      box-sizing: border-box;
     }
     #suggestions {
       text-align: left;
@@ -75,7 +65,30 @@
       text-align: left;
       white-space: pre-line;
     }
-    /* --- Footer 스타일 수정 --- */
+    #noAnswerBox, #customRequestBox {
+      display: none;
+      margin-top: 30px;
+    }
+    #customRequestInput {
+      width: 300px;
+      height: 38px;
+      line-height: 38px;
+      padding: 0 10px;
+      font-size: 15px;
+      border: 2px solid #222;
+    }
+    #customRequestBox button {
+      height: 38px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: bold;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
     footer {
       width: 100%;
       background-color: #f2f2f2;
@@ -83,13 +96,11 @@
       text-align: center;
       padding: 10px 0;
       font-size: 14px;
-      flex-shrink: 0; /* 푸터 크기가 줄어들지 않도록 설정 */
+      flex-shrink: 0;
     }
-    /* --- ------------------ --- */
-</style>
+  </style>
 </head>
 <body>
-
 <div class="content-wrapper">
   <h2>물류용어 백과사전<br/>(Encyclopedia of Logistics)</h2>
   <div>
@@ -103,116 +114,49 @@
   <div id="questionText"></div>
   <div id="answerText"></div>
   <div id="source" style="display:none;"></div>
+  <div id="noAnswerBox"><span>제공된 답변이 없습니다</span></div>
+  <div id="customRequestBox">
+    <input id="customRequestInput" type="text" placeholder="원하는 정보를 입력해 주세요..." />
+    <button onclick="submitCustomRequest()">제출하기</button>
+  </div>
 </div>
 
 <script>
-// 자바스크립트 코드는 변경사항 없음
+function updateClock() {
+  const now = new Date();
+  const formatted = now.toLocaleString("ko-KR", {
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+  });
+  document.getElementById("clock").innerText = "🕒 " + formatted;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
 function removeSubheadings(text) {
   text = text.replace(/(\d+\.\s*)\*\*(.*?)\*\*(:)/g, "$1$2$3");
   text = text.replace(/\*\*(.*?)\*\*/g, "$1");
   text = text.replace(/^#{1,6}\s*[^\n]+\s*$/gm, "");
   return text;
 }
+
 function applyCustomLineBreaks(text) {
   return text
     .split('\n')
     .map(paragraph => {
-      if (/^\d+[.:;]/.test(paragraph.trim())) {
-        return paragraph;
-      }
-      return paragraph.replace(/(?<!\d)([.:;])(\s*)(?=\d+[.:;])/g, function(match, p1, p2) {
-        return p1 + p2 + "\n";
-      });
+      if (/^\d+[.:;]/.test(paragraph.trim())) return paragraph;
+      return paragraph.replace(/(?<!\d)([.:;])(\s*)(?=\d+[.:;])/g, "$1$2\n");
     })
     .join('\n');
 }
-let isComposing = false;
-let isSearching = false;
-let searchTimer = null;
-let currentTab = "term";
-function updateClock() {
-  const now = new Date();
-  const formatted = now.toLocaleString("ko-KR", {
-    year: 'numeric', month: 'numeric', day: 'numeric',
-    hour: 'numeric', minute: '2-digit', second: '2-digit',
-    hour12: true
-  });
-  document.getElementById("clock").innerText = "🕒 " + formatted;
-}
-setInterval(updateClock, 1000);
-updateClock();
-function clearResults() {
-  document.getElementById("questionText").innerText = "";
-  document.getElementById("answerText").innerText = "";
-  document.getElementById("source").style.display = "none";
-  document.getElementById("suggestions").innerHTML = "";
-}
-const searchBox = document.getElementById("searchBox");
-function scheduleSearch() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    triggerSearch();
-  }, 100);
-}
-searchBox.addEventListener("compositionstart", () => { isComposing = true; });
-searchBox.addEventListener("compositionend", () => {
-  isComposing = false;
-  setTimeout(scheduleSearch, 0);
-});
-searchBox.addEventListener("input", () => { scheduleSearch(); });
-async function triggerSearch() {
-  const query = searchBox.value.trim().toLowerCase();
-  const suggestions = document.getElementById("suggestions");
-  suggestions.innerHTML = "";
-  if (!query) return;
-  if (currentTab === "term") {
-    try {
-      const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(query));
-      const terms = await res.json();
-      terms.forEach(term => {
-        const div = document.createElement("div");
-        div.className = "suggestion";
-        div.textContent = term;
-        div.onmousedown = async function() {
-          const status = document.getElementById("statusMessage");
-          status.style.display = "none";
-          searchBox.value = "";
-          const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
-          const result = await detailRes.json();
-          const question = result.term || result["질문"] || term;
-          const answer = result.answer || result["답변"] || "물류와 관계없는 질문입니다";
-          const source = result.source || result["출처"] || "OpenAI GPT-4o";
-          document.getElementById("questionText").innerText = "질문: " + question;
-          const processedAnswer = removeSubheadings(applyCustomLineBreaks(answer));
-          document.getElementById("answerText").innerText = processedAnswer;
-          if (source) {
-            document.getElementById("source").innerText = "출처: " + source;
-            document.getElementById("source").style.display = "block";
-          } else {
-            document.getElementById("source").style.display = "none";
-          }
-          suggestions.innerHTML = "";
-          searchBox.value = "";
-          await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(result)
-          });
-        };
-        suggestions.appendChild(div);
-      });
-    } catch (err) {
-      console.error("❌ 자동완성 오류:", err);
-    }
-  }
-}
+
 async function handleSearch(term) {
   const status = document.getElementById("statusMessage");
   status.innerText = "답변 생성 중...";
   status.style.display = "block";
   try {
-    const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
-    const result = await detailRes.json();
+    const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
+    const result = await res.json();
     const question = result.term || result["질문"] || term;
     const answer = result.answer || result["답변"] || "물류와 관계없는 질문입니다";
     const source = result.source || result["출처"] || "OpenAI GPT-4o";
@@ -222,31 +166,43 @@ async function handleSearch(term) {
     if (source) {
       document.getElementById("source").innerText = "출처: " + source;
       document.getElementById("source").style.display = "block";
-    } else {
-      document.getElementById("source").style.display = "none";
+    }
+    if (!answer || answer.trim() === "") {
+      document.getElementById("noAnswerBox").style.display = "block";
+    } else if (answer.includes("데이터가 없는 질문입니다")) {
+      document.getElementById("customRequestBox").style.display = "block";
     }
     status.style.display = "none";
-    searchBox.value = "";
-    await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(result)
-    });
+    document.getElementById("searchBox").value = "";
   } catch (err) {
-    console.error("❌ 검색 오류:", err);
+    console.error("검색 오류:", err);
     status.innerText = "❌ 오류 발생";
     status.style.display = "block";
   }
 }
-searchBox.addEventListener("keydown", function (event) {
+
+function submitCustomRequest() {
+  const term = document.getElementById("customRequestInput").value.trim();
+  if (!term) return alert("내용을 입력해 주세요.");
+  fetch("https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/submitInquiry", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ term })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert("✅ 요청이 접수되었습니다.");
+    document.getElementById("customRequestInput").value = "";
+  })
+  .catch(err => {
+    alert("❌ 전송 실패: " + err);
+  });
+}
+
+document.getElementById("searchBox").addEventListener("keydown", function (event) {
   if (event.key === "Enter") {
-    const term = searchBox.value.trim();
-    if (term) {
-      const status = document.getElementById("statusMessage");
-      status.innerText = "답변 생성 중...";
-      status.style.display = "block";
-      handleSearch(term);
-    }
+    const term = this.value.trim();
+    if (term) handleSearch(term);
   }
 });
 </script>
