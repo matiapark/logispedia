@@ -11,7 +11,9 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
     }
     *, *::before, *::after {
       box-sizing: inherit;
@@ -19,11 +21,10 @@
     body {
       font-family: sans-serif;
       text-align: center;
-      display: flex;
-      flex-direction: column;
+      flex: 1;
     }
     .content-wrapper {
-      flex: 1 0 auto;
+      flex: 1;
       max-width: 800px;
       margin: 20px auto;
       width: calc(100% - 40px);
@@ -87,7 +88,6 @@
       flex-direction: row;
       align-items: center;
       gap: 10px;
-      /* display 속성은 JS에서만 설정 */
     }
     #customRequestInput {
       width: 250px;
@@ -162,7 +162,7 @@
   </div>
   <div id="clock">🕒 로딩 중...</div>
 
-  <input autocomplete="off" id="searchBox" placeholder="물류 관련 기술용어를 입력하세요 (예: AGV, 소터)" type="text"/>
+  <input autocomplete="off" id="searchBox" placeholder="물류 관련 기술용어를 입력하세요 (예: AGV, WMS, 소터)" type="text"/>
   <ul id="suggestions"></ul>
   <div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 찾는 중...</div>
   <div id="questionText"></div>
@@ -175,12 +175,18 @@
 
   <div id="noAnswerBox"><span>제공된 답변이 없습니다</span></div>
 
-  <!-- ✅ 시작 시 숨김 -->
+  <!-- 시작 시 숨김 -->
   <div id="customRequestBox" style="display: none;">
     <input id="customRequestInput" type="text" placeholder="물류 관련 기술용어를 입력해 주세요..."/>
     <button onclick="submitCustomRequest()">제출하기</button>
   </div>
 </div>
+
+<footer>
+  <div>(주)마이아바타</div>
+  <div>대표: 박현국</div>
+  <div>사업자등록번호: 781-86-02208</div>
+</footer>
 
 <script>
 function updateClock() {
@@ -239,8 +245,7 @@ async function handleGPTSearch(term) {
       document.getElementById("source").innerText = "출처: 없음";
       document.getElementById("noAnswerBox").style.display = "block";
     } else if (lower.includes("데이터가 없는 질문입니다")) {
-      const box = document.getElementById("customRequestBox");
-      box.style.display = "flex";  // 필요할 때만 flex로 표시
+      document.getElementById("customRequestBox").style.display = "flex";
       document.getElementById("source").innerText = "출처: 없음";
     } else {
       document.getElementById("source").innerText = "출처: " + source;
@@ -282,12 +287,6 @@ document.getElementById("searchBox").addEventListener("keydown", function (event
   }
 });
 </script>
-
-<footer>
-  <div>(주)마이아바타</div>
-  <div>대표: 박현국</div>
-  <div>사업자등록번호: 781-86-02208</div>
-</footer>
 
 </body>
 </html>
