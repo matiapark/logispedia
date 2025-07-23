@@ -5,30 +5,27 @@
   <meta charset="utf-8"/>
   <title>기술사전</title>
   <style>
-    /* --- 추가: HTML, Body 기본 스타일 --- */
+    /* --- HTML, Body 기본 스타일 --- */
     html, body {
       height: 100%;
       margin: 0;
     }
-    /* --- --------------------------- --- */
 
     body {
       font-family: sans-serif;
       text-align: center;
-      /* --- 추가: Flexbox 레이아웃 설정 --- */
+      /* --- Flexbox 레이아웃 설정 --- */
       display: flex;
       flex-direction: column;
-      /* --- --------------------------- --- */
     }
 
-    /* --- 추가: 콘텐츠를 감싸는 Wrapper --- */
+    /* --- 콘텐츠를 감싸는 Wrapper --- */
     .content-wrapper {
       flex: 1 0 auto; /* 이 요소가 남은 공간을 모두 차지하도록 설정 */
       max-width: 800px;
       margin: 20px auto;
       width: 100%;
     }
-    /* --- --------------------------- --- */
 
     #searchBox { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
     #suggestions { list-style: none; padding: 0; text-align: left; margin: 0; border: 1px solid #ccc; border-top: none; max-height: 180px; overflow-y: auto; }
@@ -130,15 +127,15 @@
       background-color: #f0f0f0;
     }
 
-    /* --- 추가: Footer 스타일 --- */
+    /* --- 수정된 Footer 스타일 --- */
     footer {
-      flex-shrink: 0; /* 푸터 크기가 줄어들지 않도록 설정 */
-      background-color: #f8f9fa;
-      padding: 20px;
+      width: 100%;
+      background-color: #f2f2f2;
+      color: #333;
       text-align: center;
+      padding: 10px 0;
       font-size: 14px;
-      color: #6c757d;
-      line-height: 1.6;
+      flex-shrink: 0; /* 푸터 크기가 줄어들지 않도록 설정 */
     }
     /* --- --------------------- --- */
 
@@ -336,9 +333,10 @@ document.getElementById("searchBox").addEventListener("keydown", function (event
 </script>
 
 <footer>
-  <div>회사명: (주)마이아바타</div>
+  <div>(주)마이아바타</div>
   <div>대표: 박현국</div>
   <div>사업자등록번호: 781-86-02208</div>
 </footer>
+
 </body>
 </html>
