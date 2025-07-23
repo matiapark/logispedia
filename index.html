@@ -120,7 +120,7 @@ updateClock();
 
 async function handleSearch(term) {
   const status = document.getElementById("statusMessage");
-  status.innerText = "답변 생성 중...";
+  status.innerText = "답변 찾는 중...";
   status.style.display = "block";
   try {
     const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(term));
