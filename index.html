@@ -158,19 +158,23 @@ async function handleSearch(term) {
     const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
     const result = await res.json();
     const question = result.term || result["질문"] || term;
-    const answer = result.answer || result["답변"] || "물류와 관계없는 질문입니다";
-    const source = result.source || result["출처"] || "OpenAI GPT-4o";
-    document.getElementById("questionText").innerText = "질문: " + question;
-    const processedAnswer = removeSubheadings(applyCustomLineBreaks(answer));
-    document.getElementById("answerText").innerText = processedAnswer;
-    if (source) {
+    const answer = result.answer || result["답변"] || "";
+    const source = result.source || result["출처"] || "";
+
+    const lower = answer.toLowerCase();
+    const isGenerated = !answer || lower.includes("gpt") || lower.includes("ai") || lower.includes("자동 생성") || lower.includes("데이터가 없는 질문입니다") || lower.includes("물류와 관계없는 질문입니다");
+
+    if (isGenerated) {
+      document.getElementById("questionText").innerText = "질문: " + question;
+      document.getElementById("answerText").innerText = "";
+      document.getElementById("source").style.display = "none";
+      document.getElementById("noAnswerBox").style.display = "block";
+      document.getElementById("customRequestBox").style.display = "block";
+    } else {
+      document.getElementById("questionText").innerText = "질문: " + question;
+      document.getElementById("answerText").innerText = removeSubheadings(applyCustomLineBreaks(answer));
       document.getElementById("source").innerText = "출처: " + source;
       document.getElementById("source").style.display = "block";
-    }
-    if (!answer || answer.trim() === "") {
-      document.getElementById("noAnswerBox").style.display = "block";
-    } else if (answer.includes("데이터가 없는 질문입니다")) {
-      document.getElementById("customRequestBox").style.display = "block";
     }
     status.style.display = "none";
     document.getElementById("searchBox").value = "";
