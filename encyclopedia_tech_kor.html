@@ -83,14 +83,15 @@
       margin-top: 30px;
     }
     #customRequestBox {
-      display: none; /* 초기에는 완전히 숨김 */
+      display: none;
       margin-top: 30px;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
+      display: flex;
+      flex-direction: row;      /* 가로 정렬 */
+      align-items: center;      /* 수직 정렬 */
+      gap: 10px;                /* 간격 */
     }
     #customRequestInput {
-      width: 250px;
+      width: 250px;             /* 너비 250px */
       height: 38px;
       padding: 0 10px;
       font-size: 15px;
@@ -175,8 +176,8 @@
 
   <div id="noAnswerBox"><span>제공된 답변이 없습니다</span></div>
 
-  <div id="customRequestBox" style="display: none;">
-    <input id="customRequestInput" type="text" placeholder="물류 관련 기술용어를 입력해 주세요..."/>
+  <div id="customRequestBox">
+    <input id="customRequestInput" type="text" placeholder="물류 관련 기술용어를 입력해 주세요"/>
     <button onclick="submitCustomRequest()">제출하기</button>
   </div>
 </div>
@@ -239,8 +240,8 @@ async function handleGPTSearch(term) {
       document.getElementById("noAnswerBox").style.display = "block";
     } else if (lower.includes("데이터가 없는 질문입니다")) {
       const box = document.getElementById("customRequestBox");
-      box.style.display = "flex";  // 보여줄 때는 flex로 보여줌
-    document.getElementById("source").innerText = "출처: 없음";
+      box.style.display = "flex";  // 표시 시에는 flex 사용
+      document.getElementById("source").innerText = "출처: 없음";
     } else {
       document.getElementById("source").innerText = "출처: " + source;
     }
