@@ -3,6 +3,7 @@
 <head>
   <link href="term_dictionary_favicon.ico" rel="icon" type="image/x-icon"/>
   <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>물류용어 백과사전</title>
   <style>
     html, body { height: 100%; margin: 0; }
@@ -19,7 +20,13 @@
       width: 100%;
     }
     #searchBox {
-      width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    #searchBox::placeholder {
+      font-size: 16px;
     }
     #suggestions { text-align: left; }
     .suggestion {
@@ -46,7 +53,19 @@
       margin-bottom: 10px;
       color: #444;
     }
-    #questionText, #answerText, #source {
+    #questionText {
+      margin-top: 20px;
+      font-size: 16px;
+      text-align: left;
+      white-space: pre-line;
+    }
+    #answerText {
+      margin-top: 20px;
+      font-size: 16px;
+      text-align: left;
+      white-space: pre-line;
+    }
+    #source {
       margin-top: 20px;
       font-size: 16px;
       text-align: left;
