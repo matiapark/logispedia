@@ -5,10 +5,7 @@
   <meta charset="utf-8"/>
   <title>물류용어 백과사전</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-    }
+    html, body { height: 100%; margin: 0; }
     body {
       font-family: sans-serif;
       text-align: center;
@@ -22,23 +19,16 @@
       width: 100%;
     }
     #searchBox {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
+      width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box;
     }
-    #suggestions {
-      text-align: left;
-    }
+    #suggestions { text-align: left; }
     .suggestion {
       padding: 8px;
       border: 1px solid #ccc;
       border-top: none;
       cursor: pointer;
     }
-    .suggestion:hover {
-      background-color: #eef;
-    }
+    .suggestion:hover { background-color: #eef; }
     .tab {
       margin: 10px 5px;
       padding: 10px 20px;
@@ -50,10 +40,7 @@
       align-items: center;
       gap: 6px;
     }
-    .selected {
-      background-color: #007bff;
-      color: white;
-    }
+    .selected { background-color: #007bff; color: white; }
     #clock {
       font-size: 14px;
       margin-bottom: 10px;
@@ -72,7 +59,6 @@
     #customRequestInput {
       width: 300px;
       height: 38px;
-      line-height: 38px;
       padding: 0 10px;
       font-size: 15px;
       border: 2px solid #222;
@@ -133,51 +119,38 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-function removeSubheadings(text) {
-  text = text.replace(/(\d+\.\s*)\*\*(.*?)\*\*(:)/g, "$1$2$3");
-  text = text.replace(/\*\*(.*?)\*\*/g, "$1");
-  text = text.replace(/^#{1,6}\s*[^\n]+\s*$/gm, "");
-  return text;
-}
-
-function applyCustomLineBreaks(text) {
-  return text
-    .split('\n')
-    .map(paragraph => {
-      if (/^\d+[.:;]/.test(paragraph.trim())) return paragraph;
-      return paragraph.replace(/(?<!\d)([.:;])(\s*)(?=\d+[.:;])/g, "$1$2\n");
-    })
-    .join('\n');
-}
-
 async function handleSearch(term) {
   const status = document.getElementById("statusMessage");
   status.innerText = "답변 생성 중...";
   status.style.display = "block";
   try {
-    const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
-    const result = await res.json();
-    const question = result.term || result["질문"] || term;
-    const answer = result.answer || result["답변"] || "";
-    const source = result.source || result["출처"] || "";
+    const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(term));
+    const terms = await res.json();
+    const matched = terms.find(t => t.toLowerCase() === term.toLowerCase());
 
-    const lower = answer.toLowerCase();
-    const isGenerated = !answer || lower.includes("gpt") || lower.includes("ai") || lower.includes("자동 생성") || lower.includes("데이터가 없는 질문입니다") || lower.includes("물류와 관계없는 질문입니다");
-
-    if (isGenerated) {
-      document.getElementById("questionText").innerText = "질문: " + question;
+    if (!matched) {
+      document.getElementById("questionText").innerText = "질문: " + term;
       document.getElementById("answerText").innerText = "";
       document.getElementById("source").style.display = "none";
       document.getElementById("noAnswerBox").style.display = "block";
       document.getElementById("customRequestBox").style.display = "block";
-    } else {
-      document.getElementById("questionText").innerText = "질문: " + question;
-      document.getElementById("answerText").innerText = removeSubheadings(applyCustomLineBreaks(answer));
-      document.getElementById("source").innerText = "출처: " + source;
-      document.getElementById("source").style.display = "block";
+      status.style.display = "none";
+      return;
     }
+
+    const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
+    const result = await detailRes.json();
+    const question = result.term || result["질문"] || term;
+    const answer = result.answer || result["답변"] || "";
+    const source = result.source || result["출처"] || "";
+
+    document.getElementById("questionText").innerText = "질문: " + question;
+    document.getElementById("answerText").innerText = answer;
+    document.getElementById("source").innerText = "출처: " + source;
+    document.getElementById("source").style.display = source ? "block" : "none";
+    document.getElementById("noAnswerBox").style.display = "none";
+    document.getElementById("customRequestBox").style.display = "none";
     status.style.display = "none";
-    document.getElementById("searchBox").value = "";
   } catch (err) {
     console.error("검색 오류:", err);
     status.innerText = "❌ 오류 발생";
