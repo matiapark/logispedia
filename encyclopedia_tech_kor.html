@@ -153,7 +153,7 @@
 
   <input autocomplete="off" id="searchBox" placeholder="물류관련 기술용어나 제품을 입력하세요... (예: AGV, WMS, 소터)" type="text"/>
   <ul id="suggestions"></ul>
-  <div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 생성 중...</div>
+  <div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 찾는 중...</div>
   <div id="questionText" style="margin-top: 20px; font-size: 18px; text-align: left;"></div>
   <div id="answerText" style="margin-top: 10px; font-size: 17px; text-align: left;"></div>
   <div id="source" style="margin-top: 20px; font-size: 16px; color: #444;"></div>
@@ -213,7 +213,7 @@ document.getElementById("searchBox").addEventListener("input", async function ()
 
 async function handleGPTSearch(term) {
     currentSearchTerm = term;
-    document.getElementById("statusMessage").innerText = "답변 생성 중...";
+    document.getElementById("statusMessage").innerText = "답변 찾는 중...";
   document.getElementById("statusMessage").style.display = "block";
   document.getElementById("noAnswerBox").style.display = "none";
   document.getElementById("customRequestBox").style.display = "none";
