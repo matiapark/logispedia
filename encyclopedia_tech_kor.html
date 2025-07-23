@@ -17,16 +17,64 @@
       max-width: 800px;
       margin: 20px auto;
       width: 100%;
+      padding: 0 20px; /* 좌우 여백 추가 */
     }
-    #searchBox { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
-    #suggestions { list-style: none; padding: 0; text-align: left; margin: 0; border: 1px solid #ccc; border-top: none; max-height: 180px; overflow-y: auto; }
-    #suggestions li { padding: 8px 10px; border-top: 1px solid #eee; cursor: pointer; }
+    #searchBox {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px; /* placeholder 및 입력 글자 크기 */
+      box-sizing: border-box;
+    }
+    #suggestions {
+      list-style: none;
+      padding: 0;
+      text-align: left;
+      margin: 0;
+      border: 1px solid #ccc;
+      border-top: none;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    #suggestions li {
+      padding: 8px 10px;
+      border-top: 1px solid #eee;
+      cursor: pointer;
+    }
     #suggestions li:hover { background-color: #f0f0f0; }
-    .tab { margin: 10px 5px; padding: 10px 20px; font-weight: bold; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px; }
+
+    .tab {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
     .selected { background-color: #007bff; color: white; }
-    #clock { font-size: 14px; margin-bottom: 10px; color: #444; }
-    #questionText, #answerText, #source, #extraInfo { margin-top: 20px; font-size: 18px; text-align: left; }
-    #noAnswerBox, #customRequestBox { display: none; margin-top: 30px; }
+
+    #clock {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #444;
+    }
+
+    #questionText,
+    #answerText,
+    #source {
+      margin-top: 20px;
+      font-size: 16px; /* 질문, 답변, 출처 크기 통일 */
+      text-align: left;
+    }
+
+    #noAnswerBox,
+    #customRequestBox {
+      display: none;
+      margin-top: 30px;
+    }
+
     #customRequestInput {
       width: 300px;
       height: 38px;
@@ -35,6 +83,7 @@
       border: 2px solid #222;
       border-radius: 0;
     }
+
     #customRequestBox button {
       height: 38px;
       padding: 0 16px;
@@ -48,17 +97,20 @@
       cursor: pointer;
     }
     #customRequestBox button:hover { background-color: #0056b3; }
+
     #supplierTable {
       display: none;
       width: 100%;
       margin-top: 10px;
       font-size: 15px;
     }
+
     #supplierBody {
       display: flex;
       flex-direction: column;
       gap: 0;
     }
+
     .supplier-row {
       display: grid;
       grid-template-columns: 2fr 3fr 2fr 2fr;
@@ -66,18 +118,24 @@
       align-items: start;
       padding: 6px 0;
     }
+
     .supplier-row > div {
       word-break: break-word;
       text-align: left;
       font-size: 15px;
     }
+
     .supplier-row.header {
       border-bottom: 2px solid #333;
       font-weight: bold;
       background-color: #fff;
       padding-bottom: 8px;
     }
-    .supplier-row.data:nth-child(even) { background-color: #f0f0f0; }
+
+    .supplier-row.data:nth-child(even) {
+      background-color: #f0f0f0;
+    }
+
     footer {
       width: 100%;
       background-color: #f2f2f2;
@@ -104,7 +162,7 @@
   <div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 찾는 중...</div>
   <div id="questionText"></div>
   <div id="answerText" style="margin-top: 10px;"></div>
-  <div id="source" style="margin-top: 20px; font-size: 16px; color: #444;"></div>
+  <div id="source" style="margin-top: 20px; color: #444;"></div>
   <div id="supplierTitle" style="display: none; font-weight: bold; text-align: left; margin-top: 30px; font-size: 17px;">공급업체</div>
   <table id="supplierTable">
     <tbody id="supplierBody"></tbody>
@@ -127,7 +185,10 @@ setInterval(updateClock, 1000); updateClock();
 
 document.getElementById("searchBox").addEventListener("input", async function () {
   const query = this.value.trim();
-  if (!query) { document.getElementById("suggestions").innerHTML = ""; return; }
+  if (!query) {
+    document.getElementById("suggestions").innerHTML = "";
+    return;
+  }
   try {
     const res = await fetch(`https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/listTechTermsByPrefix?q=${encodeURIComponent(query)}`);
     const raw = await res.json();
@@ -177,8 +238,6 @@ async function handleGPTSearch(term) {
     } else {
       document.getElementById("source").innerText = "출처: " + source;
     }
-
-    // 공급업체 테이블 처리 생략 (이전 코드 그대로 유지 가능)
 
     document.getElementById("statusMessage").style.display = "none";
   } catch (err) {
