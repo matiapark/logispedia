@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>물류 용어 다중 등록</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+    .status { margin-top: 20px; white-space: pre-wrap; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h2>📤 물류 용어 다중 등록 (CSV 파일)</h2>
+  <p>CSV 파일의 첫 번째 열은 반드시 <code>term</code> 이어야 합니다.</p>
+
+  <input type="file" id="fileInput" accept=".csv" />
+  <button onclick="uploadFile()">업로드 및 등록</button>
+
+  <div class="status" id="statusBox"></div>
+
+<script>
+  const baseUrl = "https://2hmtyf2t9e.execute-api.ap-northeast-2.amazonaws.com/prod/LogisticsDictionaryBatchAPI";
+
+  async function uploadFile() {
+    const fileInput = document.getElementById("fileInput");
+    const statusBox = document.getElementById("statusBox");
+    statusBox.innerText = "📑 CSV 파일 읽는 중...";
+
+    if (!fileInput.files[0]) {
+      alert("CSV 파일을 선택해주세요.");
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const text = await file.text();
+    const rows = text.trim().split("\n");
+    const headers = rows[0].split(",");
+    const termIndex = headers.findIndex(h => h.trim().toLowerCase() === "term");
+
+    if (termIndex === -1) {
+      alert("CSV 파일에 'term' 헤더가 없습니다.");
+      return;
+    }
+
+    const terms = rows.slice(1).map(row => row.split(",")[termIndex].trim()).filter(t => t);
+    if (terms.length === 0) {
+      alert("등록할 용어가 없습니다.");
+      return;
+    }
+
+    statusBox.innerText = `총 ${terms.length}개 용어 처리 중...`;
+    let success = 0, fail = 0;
+    const failedTerms = [];  // 실패한 용어 목록
+
+    for (let i = 0; i < terms.length; i++) {
+      const term = terms[i];
+      statusBox.innerText = `🔄 (${i + 1}/${terms.length}) ${term} 처리 중...\n성공: ${success}, 실패: ${fail}`;
+
+      try {
+        const res = await fetch(baseUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ term })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          success++;
+        } else {
+          fail++;
+          failedTerms.push(term);
+        }
+      } catch (err) {
+        console.error("요청 실패:", err);
+        fail++;
+        failedTerms.push(term);
+      }
+    }
+
+    statusBox.innerText = `🎉 완료: ${success}개 등록 성공, ${fail}개 실패`;
+
+    // 실패한 용어 CSV 다운로드 링크 생성
+    if (failedTerms.length > 0) {
+      const csvContent = "\uFEFFterm\n" + failedTerms.map(t => `"${t}"`).join("\n"); // UTF-8 BOM 포함
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "failed_terms.csv";
+      downloadLink.innerText = "📥 실패한 용어 CSV 다운로드";
+      downloadLink.style.display = "inline-block";
+      downloadLink.style.marginTop = "15px";
+      downloadLink.style.fontWeight = "bold";
+
+      statusBox.appendChild(document.createElement("br"));
+      statusBox.appendChild(downloadLink);
+    }
+  }
+</script>
+</body>
+</html>
