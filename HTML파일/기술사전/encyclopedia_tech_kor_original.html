@@ -1,0 +1,300 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <link rel="icon" href="tech_favicon.png" type="image/png">
+  <meta charset="utf-8"/>
+  <title>기술사전</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 20px auto; text-align: center; }
+    #searchBox { width: 100%; padding: 10px; font-size: 16px; }
+    #suggestions { list-style: none; padding: 0; text-align: left; margin: 0; border: 1px solid #ccc; border-top: none; max-height: 180px; overflow-y: auto; }
+    #suggestions li { padding: 8px 10px; border-top: 1px solid #eee; cursor: pointer; }
+    #suggestions li:hover { background-color: #f0f0f0; }
+    .tab { margin: 10px 5px; padding: 10px 20px; font-weight: bold; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px; }
+    .selected { background-color: #007bff; color: white; }
+    #clock { font-size: 14px; margin-bottom: 10px; color: #444; }
+    #questionText, #answerText, #source, #extraInfo { margin-top: 20px; font-size: 18px; text-align: left; }
+    #noAnswerBox, #customRequestBox { display: none; margin-top: 30px; }
+    #customRequestInput {
+      width: 300px;
+      height: 38px;
+      line-height: 38px;
+      padding: 0 10px;
+      font-size: 15px;
+      border: 2px solid #222;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    #customRequestBox button {
+      height: 38px;
+      line-height: 38px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: bold;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      margin-left: 10px;
+      cursor: pointer;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.15);
+      vertical-align: middle;
+    }
+    #customRequestBox button:hover {
+      background-color: #0056b3;
+    }
+  
+#supplierTable {
+  display: none;
+  width: 100%;
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+#supplierBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.supplier-row {
+  display: grid;
+  grid-template-columns: 2fr 3fr 2fr 2fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.supplier-row > div {
+  word-break: break-word;
+  white-space: normal;
+  text-align: left;
+  font-size: 15px;
+}
+
+
+#supplierBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.supplier-row {
+  display: grid;
+  grid-template-columns: 2fr 3fr 2fr 2fr;
+  gap: 10px;
+  align-items: start;
+  padding: 6px 0;
+}
+
+.supplier-row > div {
+  word-break: break-word;
+  white-space: normal;
+  text-align: left;
+  font-size: 15px;
+}
+
+/* 헤더 행 스타일 */
+.supplier-row.header {
+  border-bottom: 2px solid #333;
+  font-weight: bold;
+  background-color: #fff;
+  padding-bottom: 8px;
+}
+
+/* 줄무늬 배경 */
+.supplier-row.data:nth-child(even) {
+  background-color: #f0f0f0;
+}
+
+</style>
+</head>
+<body>
+<h2>물류용어 백과사전<br/>(Encyclopedia of Logistics)</h2>
+<div>
+  <button class="tab" onclick="location.href='../encyclopedia_logistics_kor.html'">📘 용어사전</button>
+  <button class="tab selected" onclick="location.href='encyclopedia_tech_gpt.html'">🛠 기술사전</button>
+</div>
+<div id="clock">🕒 로딩 중...</div>
+
+<input autocomplete="off" id="searchBox" placeholder="기술용어나 제품을 입력하세요... (예: AGV, WMS, 소터)" type="text"/>
+<ul id="suggestions"></ul>
+<div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 생성 중...</div>
+<div id="questionText" style="margin-top: 20px; font-size: 18px; text-align: left;"></div>
+<div id="answerText" style="margin-top: 10px; font-size: 17px; text-align: left;"></div>
+<div id="source" style="margin-top: 20px; font-size: 16px; color: #444;"></div>
+<div id="supplierTitle" style="display: none; font-weight: bold; text-align: left; margin-top: 30px; font-size: 17px;" style="margin-top: 25px; font-size: 17px; font-weight: bold; text-align: left;">공급업체</div>
+<table id="supplierTable" style="display: none; width: 100%; margin-top: 10px; font-size: 15px;">
+  <tbody id="supplierBody"></tbody>
+</table>
+
+<div id="noAnswerBox"><span>제공된 답변이 없습니다</span></div>
+
+<div id="customRequestBox">
+  <input id="customRequestInput" type="text" placeholder="물류 관련 기술이나 제품 입력해 주세요..."/>
+  <button onclick="submitCustomRequest()">제출하기</button>
+</div>
+
+<script>
+let currentSearchTerm = "";
+
+function updateClock() {
+  const now = new Date();
+  const formatted = now.toLocaleString("ko-KR", {
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+  });
+  document.getElementById("clock").innerText = "🕒 " + formatted;
+}
+setInterval(updateClock, 1000); updateClock();
+
+document.getElementById("searchBox").addEventListener("input", async function () {
+  const query = this.value.trim();
+  if (!query) { document.getElementById("suggestions").innerHTML = ""; return; }
+  try {
+    const res = await fetch(`https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/listTechTermsByPrefix?q=${encodeURIComponent(query)}`);
+    const raw = await res.json();
+    const data = typeof raw.body === "string" ? JSON.parse(raw.body) : raw;
+    const suggestions = document.getElementById("suggestions");
+    suggestions.innerHTML = "";
+    if (data.terms) {
+      data.terms.forEach(term => {
+        const li = document.createElement("li");
+        li.textContent = term;
+        li.onclick = () => {
+          document.getElementById("searchBox").value = "";
+                          document.getElementById("searchBox").value = "";
+            handleGPTSearch(term);
+          document.getElementById("searchBox").value = "";
+          suggestions.innerHTML = "";
+        };
+        suggestions.appendChild(li);
+      });
+    }
+  } catch (err) {
+    console.error("자동완성 오류:", err);
+  }
+});
+
+async function handleGPTSearch(term) {
+    currentSearchTerm = term;
+    document.getElementById("statusMessage").innerText = "답변 생성 중...";
+  document.getElementById("statusMessage").style.display = "block";
+  document.getElementById("noAnswerBox").style.display = "none";
+  document.getElementById("customRequestBox").style.display = "none";
+
+  try {
+    const res = await fetch("https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/searchTechTerm?q=" + encodeURIComponent(term));
+    const result = await res.json();
+    const data = typeof result.body === "string" ? JSON.parse(result.body) : result;
+
+    const answer = data.answer || "";
+        document.getElementById("questionText").innerText = "질문: " + (data.term || term);
+    document.getElementById("answerText").innerText = answer;
+    document.getElementById("source").innerText = "출처: " + (data.source || "OpenAI GPT-4o");
+    document.getElementById("source").style.display = "block";
+
+    const supplierTable = document.getElementById("supplierTable");
+    const supplierBody = document.getElementById("supplierBody");
+    supplierBody.innerHTML = "";
+    const headerRow = document.createElement("div");
+    headerRow.className = "supplier-row header";
+    ["회사명", "취급제품", "홈페이지", "유튜브"].forEach(text => {
+      const div = document.createElement("div");
+      div.style.fontWeight = "bold";
+      div.textContent = text;
+      headerRow.appendChild(div);
+    });
+    supplierBody.appendChild(headerRow);
+    if (Array.isArray(data.suppliers) && data.suppliers.length > 0) {
+      document.getElementById("supplierTitle").style.display = "block";
+      document.getElementById("supplierTable").style.display = "table";
+      data.suppliers.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = `${s.company} - ${s.product}`;
+        
+    const row = document.createElement("div");
+    row.className = "supplier-row data";
+    [s.company, s.product, s.homepage, s.youtube].forEach((text, idx) => {
+      const td = document.createElement("div");
+      td.style.padding = "6px";
+      td.style.textAlign = "left";
+      if (idx === 2 || idx === 3) {
+        const a = document.createElement("a");
+        a.href = text.startsWith("http") ? text : "https://" + text;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = text;
+        td.appendChild(a);
+      } else {
+        td.textContent = text;
+      }
+      row.appendChild(td);
+    });
+    supplierBody.appendChild(row);
+
+      });
+    } else {
+      document.getElementById("supplierTitle").style.display = "none";
+      document.getElementById("supplierTable").style.display = "none";
+      supplierBody.innerHTML = "";
+    const headerRow = document.createElement("div");
+    headerRow.className = "supplier-row header";
+    ["회사명", "취급제품", "홈페이지", "유튜브"].forEach(text => {
+      const div = document.createElement("div");
+      div.style.fontWeight = "bold";
+      div.textContent = text;
+      headerRow.appendChild(div);
+    });
+    supplierBody.appendChild(headerRow);
+    }
+
+
+    const lower = answer.toLowerCase();
+    if (!answer || answer.trim() === "") {
+      document.getElementById("noAnswerBox").style.display = "block";
+    } else if (lower.includes("물류와 관련이 없는 질문입니다")) {
+      // nothing to show
+    } else if (lower.includes("데이터가 없는 질문입니다")) {
+      document.getElementById("customRequestBox").style.display = "block";
+    }
+
+        document.getElementById("customRequestInput").value = "";
+    document.getElementById("statusMessage").style.display = "none";
+  } catch (err) {
+    document.getElementById("statusMessage").innerText = "❌ 오류 발생";
+    console.error(err);
+  }
+}
+
+function submitCustomRequest() {
+  const term = document.getElementById("customRequestInput").value.trim();
+  if (!term) return alert("내용을 입력해 주세요.");
+  fetch("https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/submitInquiry", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ term: term })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert("✅ 요청이 접수되었습니다.");
+    document.getElementById("customRequestInput").value = "";
+  })
+  .catch(err => {
+    alert("❌ 전송 실패: " + err);
+  });
+}
+
+document.getElementById("searchBox").addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    const term = this.value.trim();
+    if (term) {
+      document.getElementById("suggestions").innerHTML = "";
+            document.getElementById("searchBox").value = "";
+            handleGPTSearch(term);
+    }
+  }
+});
+</script>
+</body>
+</html>
