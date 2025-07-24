@@ -40,18 +40,14 @@
     #searchBox::placeholder {
       font-size: 16px;
     }
-    #suggestions {
-      text-align: left;
-    }
+    #suggestions { text-align: left; }
     .suggestion {
       padding: 8px;
       border: 1px solid #ccc;
       border-top: none;
       cursor: pointer;
     }
-    .suggestion:hover {
-      background-color: #eef;
-    }
+    .suggestion:hover { background-color: #eef; }
     .tab {
       margin: 10px 5px;
       padding: 10px 20px;
@@ -69,20 +65,33 @@
       margin-bottom: 10px;
       color: #444;
     }
-    #questionText, #answerText, #source {
+    #questionText {
+      margin-top: 20px;
+      font-size: 16px;
+      text-align: left;
+      white-space: pre-line;
+    }
+    #answerText {
       margin-top: 20px;
       font-size: 16px;
       text-align: left;
       white-space: pre-line;
     }
     #source {
+      margin-top: 20px;
+      font-size: 16px;
+      text-align: left;
+      white-space: pre-line;
+      display: none;
+    }
+    #noAnswerBox {
       display: none;
     }
     #customRequestBox {
       display: none;
       margin-top: 16px;
       flex-direction: row;
-      justify-content: flex-start;
+      justify-content: flex-start;  /* ✅ 좌측 정렬 */
       gap: 10px;
     }
     #customRequestInput {
@@ -122,7 +131,7 @@
       <button class="tab" onclick="location.href='https://logispedia.com/encyclopedia_tech_kor.html'">🛠 기술사전</button>
     </div>
     <div id="clock">🕒 로딩 중...</div>
-    <input autocomplete="off" id="searchBox" placeholder="물류 무역 관련 용어를 입력하세요..." type="text"/>
+    <input autocomplete="off" id="searchBox" placeholder="물류 무역 관련 용어를 입력하세요... (예: 피킹, export)" type="text"/>
     <div id="suggestions"></div>
     <div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 찾는 중...</div>
     <div id="questionText"></div>
@@ -159,24 +168,36 @@
       status.style.display = "block";
 
       try {
-        const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
-        const result = await res.json();
-        const answer = result.answer || result.답변 || "";
-        const source = result.source || result.출처 || "";
+        const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(term));
+        const terms = await res.json();
+        const matched = terms.find(t => t.toLowerCase() === term.toLowerCase());
 
-        document.getElementById("questionText").innerText = "질문: " + term;
-        document.getElementById("answerText").innerText = answer;
+        document.getElementById("searchBox").value = "";
+        document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
 
-        if (answer.toLowerCase().includes("데이터가 없는 질문입니다")) {
+        if (!matched) {
+          document.getElementById("questionText").innerText = "질문: " + term;
+          document.getElementById("answerText").innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
           document.getElementById("source").innerText = "";
-          document.getElementById("source").style.display = "none";
+          document.getElementById("source").style.display = "none";  // ✅ 출처 제거
+          document.getElementById("noAnswerBox").style.display = "block";
           document.getElementById("customRequestBox").style.display = "flex";
-        } else {
-          document.getElementById("source").innerText = source ? "출처: " + source : "";
-          document.getElementById("source").style.display = source ? "block" : "none";
-          document.getElementById("customRequestBox").style.display = "none";
+          status.style.display = "none";
+          return;
         }
 
+        const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
+        const result = await detailRes.json();
+        const question = result.term || result["질문"] || term;
+        const answer = result.answer || result["답변"] || "";
+        const source = result.source || result["출처"] || "";
+
+        document.getElementById("questionText").innerText = "질문: " + question;
+        document.getElementById("answerText").innerText = answer;
+        document.getElementById("source").innerText = source ? "출처: " + source : "";
+        document.getElementById("source").style.display = source ? "block" : "none";
+        document.getElementById("noAnswerBox").style.display = "none";
+        document.getElementById("customRequestBox").style.display = "none";
         status.style.display = "none";
       } catch (err) {
         console.error("검색 오류:", err);
@@ -221,7 +242,6 @@
         const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(input));
         const terms = await res.json();
 
-        // ✅ 중복 제거
         const uniqueTerms = [...new Set(terms)];
         const filtered = uniqueTerms.filter(t => t.toLowerCase().startsWith(input.toLowerCase())).slice(0, 10);
 
@@ -229,11 +249,14 @@
           const div = document.createElement("div");
           div.className = "suggestion";
           div.innerText = term;
-          div.onclick = () => {
-            document.getElementById("searchBox").value = term;
-            suggestionsBox.innerHTML = "";
-            handleSearch(term);  // ✅ 클릭 시 검색 실행
-          };
+          div.addEventListener("mouseup", function (e) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById("searchBox").value = term;
+  document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
+  suggestionsBox.innerHTML = "";
+  handleSearch(term);
+});
           suggestionsBox.appendChild(div);
         });
       } catch (err) {
