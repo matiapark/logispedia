@@ -91,7 +91,7 @@
       display: none;
       margin-top: 16px;
       flex-direction: row;
-      justify-content: center;
+      justify-content: flex-start;  /* ✅ 좌측 정렬 */
       gap: 10px;
     }
     #customRequestInput {
@@ -179,7 +179,7 @@
           document.getElementById("questionText").innerText = "질문: " + term;
           document.getElementById("answerText").innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
           document.getElementById("source").innerText = "";
-          document.getElementById("source").style.display = "none"; // ✅ 출처 제거
+          document.getElementById("source").style.display = "none";  // ✅ 출처 제거
           document.getElementById("noAnswerBox").style.display = "block";
           document.getElementById("customRequestBox").style.display = "flex";
           status.style.display = "none";
