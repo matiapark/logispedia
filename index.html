@@ -1,35 +1,20 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <link href="term_dictionary_favicon.ico" rel="icon" type="image/x-icon"/>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>물류용어 백과사전</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      min-height: 100%;
-    }
-    *, *::before, *::after {
-      box-sizing: inherit;
-    }
     body {
       font-family: sans-serif;
+      margin: 0;
+      padding: 0;
       text-align: center;
-      flex: 1;
     }
     .content-wrapper {
-      flex: 1;
       max-width: 800px;
-      margin: 20px auto;
-      width: 100%;
-      padding: 0 20px;
-      box-sizing: border-box;
+      margin: 0 auto;
+      padding: 20px;
     }
     #searchBox {
       width: 100%;
@@ -37,191 +22,66 @@
       font-size: 16px;
       box-sizing: border-box;
     }
-    #searchBox::placeholder {
-      font-size: 16px;
+    #suggestions {
+      text-align: left;
     }
-    #suggestions { text-align: left; }
     .suggestion {
       padding: 8px;
       border: 1px solid #ccc;
       border-top: none;
       cursor: pointer;
     }
-    .suggestion:hover { background-color: #eef; }
-    .tab {
-      margin: 10px 5px;
-      padding: 10px 20px;
-      font-weight: bold;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+    .suggestion:hover {
+      background-color: #eef;
     }
-    .selected { background-color: #007bff; color: white; }
-    #clock {
-      font-size: 14px;
-      margin-bottom: 10px;
-      color: #444;
-    }
-    #questionText {
-      margin-top: 20px;
-      font-size: 16px;
-      text-align: left;
-      white-space: pre-line;
-    }
-    #answerText {
-      margin-top: 20px;
-      font-size: 16px;
-      text-align: left;
-      white-space: pre-line;
-    }
+    #questionText,
+    #answerText,
     #source {
       margin-top: 20px;
       font-size: 16px;
       text-align: left;
       white-space: pre-line;
-      display: none;
-    }
-    #noAnswerBox {
-      display: none;
-    }
-    #customRequestBox {
-      display: none;
-      margin-top: 16px;
-      flex-direction: row;
-      justify-content: flex-start;  /* ✅ 좌측 정렬 */
-      gap: 10px;
-    }
-    #customRequestInput {
-      width: 250px;
-      height: 38px;
-      padding: 0 10px;
-      font-size: 15px;
-      border: 2px solid #222;
-    }
-    #customRequestBox button {
-      height: 38px;
-      padding: 0 16px;
-      font-size: 15px;
-      font-weight: bold;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    footer {
-      width: 100%;
-      background-color: #f2f2f2;
-      color: #333;
-      text-align: center;
-      padding: 10px 0;
-      font-size: 14px;
-      flex-shrink: 0;
     }
   </style>
 </head>
 <body>
   <div class="content-wrapper">
-    <h2>물류용어 백과사전<br/>(Encyclopedia of Logistics)</h2>
-    <div>
-      <button class="tab selected" onclick="location.href='https://logispedia.com'">📘 용어사전</button>
-      <button class="tab" onclick="location.href='https://logispedia.com/encyclopedia_tech_kor.html'">🛠 기술사전</button>
-    </div>
-    <div id="clock">🕒 로딩 중...</div>
-    <input autocomplete="off" id="searchBox" placeholder="물류 무역 관련 용어를 입력하세요... (예: 피킹, export)" type="text"/>
+    <h2>물류용어 백과사전</h2>
+    <input autocomplete="off" id="searchBox" placeholder="물류 무역 관련 용어를 입력하세요..." type="text"/>
     <div id="suggestions"></div>
-    <div id="statusMessage" style="color: gray; margin-top: 10px; display: none;">답변 찾는 중...</div>
     <div id="questionText"></div>
     <div id="answerText"></div>
     <div id="source"></div>
-    <div id="noAnswerBox" style="display: none;"></div>
-    <div id="customRequestBox">
-      <input id="customRequestInput" type="text" placeholder="원하는 정보를 입력해 주세요..." />
-      <button onclick="submitCustomRequest()">제출하기</button>
-    </div>
   </div>
 
-  <footer>
+  <footer style="background:#f2f2f2; padding:10px 0; font-size:14px;">
     <div>(주)마이아바타</div>
     <div>대표: 박현국</div>
     <div>사업자등록번호: 781-86-02208</div>
   </footer>
 
   <script>
-    function updateClock() {
-      const now = new Date();
-      const formatted = now.toLocaleString("ko-KR", {
-        year: 'numeric', month: 'numeric', day: 'numeric',
-        hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
-      });
-      document.getElementById("clock").innerText = "🕒 " + formatted;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
     async function handleSearch(term) {
-      const status = document.getElementById("statusMessage");
-      status.innerText = "답변 찾는 중...";
-      status.style.display = "block";
+      document.getElementById("questionText").innerText = "질문: " + term;
 
       try {
-        const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(term));
-        const terms = await res.json();
-        const matched = terms.find(t => t.toLowerCase() === term.toLowerCase());
+        const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
+        const result = await res.json();
+        const answer = result.answer || result.답변 || "";
+        const source = result.source || result.출처 || "";
 
-        document.getElementById("searchBox").value = "";
-        document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
-
-        if (!matched) {
-          document.getElementById("questionText").innerText = "질문: " + term;
-          document.getElementById("answerText").innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
-          document.getElementById("source").innerText = "";
-          document.getElementById("source").style.display = "none";  // ✅ 출처 제거
-          document.getElementById("noAnswerBox").style.display = "block";
-          document.getElementById("customRequestBox").style.display = "flex";
-          status.style.display = "none";
-          return;
-        }
-
-        const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
-        const result = await detailRes.json();
-        const question = result.term || result["질문"] || term;
-        const answer = result.answer || result["답변"] || "";
-        const source = result.source || result["출처"] || "";
-
-        document.getElementById("questionText").innerText = "질문: " + question;
         document.getElementById("answerText").innerText = answer;
-        document.getElementById("source").innerText = source ? "출처: " + source : "";
-        document.getElementById("source").style.display = source ? "block" : "none";
-        document.getElementById("noAnswerBox").style.display = "none";
-        document.getElementById("customRequestBox").style.display = "none";
-        status.style.display = "none";
+
+        if (answer.toLowerCase().includes("데이터가 없는 질문입니다")) {
+          document.getElementById("source").innerText = "";
+          document.getElementById("source").style.display = "none";
+        } else {
+          document.getElementById("source").innerText = source ? "출처: " + source : "";
+          document.getElementById("source").style.display = source ? "block" : "none";
+        }
       } catch (err) {
         console.error("검색 오류:", err);
-        status.innerText = "❌ 오류 발생";
-        status.style.display = "block";
       }
-    }
-
-    function submitCustomRequest() {
-      const term = document.getElementById("customRequestInput").value.trim();
-      if (!term) return alert("내용을 입력해 주세요.");
-      fetch("https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/submitInquiry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ term })
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert("✅ 요청이 접수되었습니다.");
-        document.getElementById("customRequestInput").value = "";
-      })
-      .catch(err => {
-        alert("❌ 전송 실패: " + err);
-      });
     }
 
     document.getElementById("searchBox").addEventListener("keydown", function (event) {
@@ -242,7 +102,9 @@
         const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(input));
         const terms = await res.json();
 
-        const filtered = terms.filter(t => t.toLowerCase().startsWith(input.toLowerCase())).slice(0, 10);
+        // ✅ 중복 제거
+        const uniqueTerms = [...new Set(terms)];
+        const filtered = uniqueTerms.filter(t => t.toLowerCase().startsWith(input.toLowerCase())).slice(0, 10);
 
         filtered.forEach(term => {
           const div = document.createElement("div");
@@ -250,9 +112,8 @@
           div.innerText = term;
           div.onclick = () => {
             document.getElementById("searchBox").value = term;
-            document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
             suggestionsBox.innerHTML = "";
-            handleSearch(term);
+            handleSearch(term);  // ✅ 클릭 시 즉시 검색 실행
           };
           suggestionsBox.appendChild(div);
         });
