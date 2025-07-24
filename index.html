@@ -151,7 +151,7 @@
   </footer>
 
   <script>
-    let isSuggestionClicked = false; // "자동완성 클릭" 상태를 저장할 변수
+    let blockInputHandler = false; // input 이벤트를 제어하기 위한 플래그
 
     function updateClock() {
       const now = new Date();
@@ -169,14 +169,19 @@
       status.innerText = "답변 찾는 중...";
       status.style.display = "block";
 
+      // 검색창을 비우기 전, input 핸들러를 비활성화
+      blockInputHandler = true;
+      document.getElementById("searchBox").value = "";
+      document.getElementById("suggestions").innerHTML = "";
+      // 비동기적으로 플래그를 다시 활성화하여 사용자 입력을 받을 준비
+      setTimeout(() => { blockInputHandler = false; }, 0);
+
       try {
         const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(term));
         const terms = await res.json();
         const matched = terms.find(t => t.toLowerCase() === term.toLowerCase());
 
-        document.getElementById("searchBox").value = "";
         document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
-        document.getElementById("suggestions").innerHTML = ""; // 검색 후 목록 확실히 지우기
 
         if (!matched) {
           document.getElementById("questionText").innerText = "질문: " + term;
@@ -206,6 +211,7 @@
         console.error("검색 오류:", err);
         status.innerText = "❌ 오류 발생";
         status.style.display = "block";
+        blockInputHandler = false; // 에러 발생 시 플래그 초기화
       }
     }
 
@@ -235,10 +241,8 @@
     });
 
     document.getElementById("searchBox").addEventListener("input", async function () {
-      // 자동완성 목록 클릭으로 인해 발생한 input 이벤트는 무시
-      if (isSuggestionClicked) {
-        isSuggestionClicked = false;
-        return;
+      if (blockInputHandler) {
+        return; // 플래그가 true이면, 아무 동작도 하지 않음
       }
 
       const input = this.value.trim();
@@ -257,10 +261,7 @@
           const div = document.createElement("div");
           div.className = "suggestion";
           div.innerText = term;
-          
-          // 'click' 이벤트 사용 (mousedown/mouseup보다 안정적)
           div.addEventListener("click", function () {
-            isSuggestionClicked = true; // 신호를 true로 설정
             handleSearch(term);
           });
           suggestionsBox.appendChild(div);
