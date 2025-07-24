@@ -151,8 +151,6 @@
   </footer>
 
   <script>
-    // --- SCRIPT START ---
-
     const searchBox = document.getElementById("searchBox");
     const suggestionsBox = document.getElementById("suggestions");
     const statusMessage = document.getElementById("statusMessage");
@@ -173,36 +171,35 @@
     }
     setInterval(updateClock, 1000);
     updateClock();
-
-    // 결과를 화면에 표시하는 함수
-    function displayResult(term, result) {
-        if (!result || !result.answer) {
-            questionText.innerText = "질문: " + term;
-            answerText.innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
-            sourceText.style.display = "none";
-            noAnswerBox.style.display = "block";
-            customRequestBox.style.display = "flex";
-        } else {
-            questionText.innerText = "질문: " + (result.term || term);
-            answerText.innerText = result.answer;
-            sourceText.innerText = result.source ? "출처: " + result.source : "";
-            sourceText.style.display = result.source ? "block" : "none";
-            noAnswerBox.style.display = "none";
-            customRequestBox.style.display = "none";
-        }
-    }
     
-    // API로부터 용어 상세 정보를 가져오는 함수
-    async function fetchTermDetails(term) {
+    // 검색 실행 및 결과 표시 함수
+    async function executeSearch(term) {
+        // UI 초기화
+        searchBox.value = ""; // 검색창을 비움
+        suggestionsBox.innerHTML = ""; // 제안 목록을 숨김
         statusMessage.innerText = "답변 찾는 중...";
         statusMessage.style.display = "block";
-        answerText.innerText = ""; // 이전 답변 초기화
+        answerText.innerText = "";
         questionText.innerText = "";
-        
+        sourceText.innerText = "";
+        noAnswerBox.style.display = "none";
+        customRequestBox.style.display = "none";
+
         try {
             const response = await fetch(`https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=${encodeURIComponent(term)}`);
             const result = await response.json();
-            displayResult(term, result);
+
+            if (!result || !result.answer) {
+                questionText.innerText = "질문: " + term;
+                answerText.innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
+                noAnswerBox.style.display = "block";
+                customRequestBox.style.display = "flex";
+            } else {
+                questionText.innerText = "질문: " + (result.term || term);
+                answerText.innerText = result.answer;
+                sourceText.innerText = result.source ? "출처: " + result.source : "";
+                sourceText.style.display = result.source ? "block" : "none";
+            }
         } catch (error) {
             console.error("Search error:", error);
             answerText.innerText = "답변을 불러오는 중 오류가 발생했습니다.";
@@ -211,22 +208,7 @@
         }
     }
 
-    // [경로 1: 자동완성 목록 클릭] - 독립적인 실행 경로
-    function createSuggestionClickListener(term) {
-        return function(event) {
-            // 1. IME 문제와 이벤트 취소를 막는 가장 중요한 코드
-            event.preventDefault();
-
-            // 2. UI를 즉시 정리하고, 검색 실행
-            searchBox.value = "";
-            suggestionsBox.innerHTML = "";
-            
-            // 3. 독립적으로 검색 실행
-            fetchTermDetails(term);
-        };
-    }
-    
-    // [경로 2: 사용자 직접 입력] - 자동완성 목록 표시
+    // 사용자 입력에 따라 자동완성 목록을 가져와 표시
     searchBox.addEventListener("input", async () => {
         const query = searchBox.value.trim();
         if (!query) {
@@ -246,8 +228,14 @@
                 const div = document.createElement("div");
                 div.className = "suggestion";
                 div.innerText = term;
-                // 독립된 실행 경로를 가진 이벤트 핸들러를 연결
-                div.addEventListener("mousedown", createSuggestionClickListener(term));
+
+                // [핵심] mousedown으로 클릭을 감지하되, 즉시 실행하지 않음
+                div.addEventListener("mousedown", () => {
+                    // 이벤트 폭풍이 지나가도록 아주 잠깐의 시간을 줌
+                    setTimeout(() => {
+                        executeSearch(term);
+                    }, 50); // 50ms (0.05초) 지연으로 안정성 확보
+                });
                 suggestionsBox.appendChild(div);
             });
         } catch (error) {
@@ -258,7 +246,7 @@
     // 엔터 키로 검색 실행
     searchBox.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && searchBox.value.trim()) {
-            fetchTermDetails(searchBox.value.trim());
+            executeSearch(searchBox.value.trim());
         }
     });
 
@@ -282,8 +270,6 @@
         alert("❌ 전송 실패: " + err);
       });
     }
-
-    // --- SCRIPT END ---
   </script>
 </body>
 </html>
