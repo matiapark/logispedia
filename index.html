@@ -249,7 +249,7 @@
           const div = document.createElement("div");
           div.className = "suggestion";
           div.innerText = term;
-          div.addEventListener("mouseup", function (e) {
+          div.addEventListener("mousedown", function (e) {
   e.preventDefault();
   e.stopPropagation();
   document.getElementById("searchBox").value = term;
