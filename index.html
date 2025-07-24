@@ -151,6 +151,8 @@
   </footer>
 
   <script>
+    let isSuggestionClicked = false; // "자동완성 클릭" 상태를 저장할 변수
+
     function updateClock() {
       const now = new Date();
       const formatted = now.toLocaleString("ko-KR", {
@@ -174,12 +176,13 @@
 
         document.getElementById("searchBox").value = "";
         document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
+        document.getElementById("suggestions").innerHTML = ""; // 검색 후 목록 확실히 지우기
 
         if (!matched) {
           document.getElementById("questionText").innerText = "질문: " + term;
           document.getElementById("answerText").innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
           document.getElementById("source").innerText = "";
-          document.getElementById("source").style.display = "none";  // ✅ 출처 제거
+          document.getElementById("source").style.display = "none";
           document.getElementById("noAnswerBox").style.display = "block";
           document.getElementById("customRequestBox").style.display = "flex";
           status.style.display = "none";
@@ -232,6 +235,12 @@
     });
 
     document.getElementById("searchBox").addEventListener("input", async function () {
+      // 자동완성 목록 클릭으로 인해 발생한 input 이벤트는 무시
+      if (isSuggestionClicked) {
+        isSuggestionClicked = false;
+        return;
+      }
+
       const input = this.value.trim();
       const suggestionsBox = document.getElementById("suggestions");
       suggestionsBox.innerHTML = "";
@@ -241,7 +250,6 @@
       try {
         const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(input));
         const terms = await res.json();
-
         const uniqueTerms = [...new Set(terms)];
         const filtered = uniqueTerms.filter(t => t.toLowerCase().startsWith(input.toLowerCase())).slice(0, 10);
 
@@ -249,14 +257,12 @@
           const div = document.createElement("div");
           div.className = "suggestion";
           div.innerText = term;
-          div.addEventListener("mousedown", function (e) {
-  e.preventDefault();
-  e.stopPropagation();
-  document.getElementById("searchBox").value = term;
-  document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
-  suggestionsBox.innerHTML = "";
-  handleSearch(term);
-});
+          
+          // 'click' 이벤트 사용 (mousedown/mouseup보다 안정적)
+          div.addEventListener("click", function () {
+            isSuggestionClicked = true; // 신호를 true로 설정
+            handleSearch(term);
+          });
           suggestionsBox.appendChild(div);
         });
       } catch (err) {
