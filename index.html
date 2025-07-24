@@ -151,7 +151,9 @@
   </footer>
 
   <script>
-    let blockInputHandler = false;
+    const searchBox = document.getElementById("searchBox");
+    const suggestionsBox = document.getElementById("suggestions");
+    const statusMessage = document.getElementById("statusMessage");
 
     function updateClock() {
       const now = new Date();
@@ -165,60 +167,97 @@
     updateClock();
 
     async function handleSearch(term) {
-      // --- 검색 시작: 모든 UI 변경 전에 Input 핸들러를 차단 ---
-      blockInputHandler = true;
-
-      document.getElementById("suggestions").innerHTML = "";
-      document.getElementById("searchBox").value = term; // 사용자가 무엇을 검색했는지 명확히 보여줌
-      document.getElementById("statusMessage").innerText = "답변 찾는 중...";
-      document.getElementById("statusMessage").style.display = "block";
-      
-      // input 이벤트가 확실히 무시된 후, 다음 사용자 입력을 위해 핸들러 차단을 해제할 준비
-      setTimeout(() => { blockInputHandler = false; }, 50);
+      // 검색 UI 초기화
+      searchBox.value = "";
+      suggestionsBox.innerHTML = "";
+      statusMessage.innerText = "답변 찾는 중...";
+      statusMessage.style.display = "block";
 
       try {
-        const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(term));
-        const terms = await res.json();
-        const matched = terms.find(t => t.toLowerCase() === term.toLowerCase());
+        const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
+        const result = await detailRes.json();
 
-        // 검색 완료 후 검색창 초기화
-        document.getElementById("searchBox").value = "";
-        document.getElementById("searchBox").placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
-
-        if (!matched) {
-          document.getElementById("questionText").innerText = "질문: " + term;
-          document.getElementById("answerText").innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
-          document.getElementById("source").innerText = "";
-          document.getElementById("source").style.display = "none";
-          document.getElementById("noAnswerBox").style.display = "block";
-          document.getElementById("customRequestBox").style.display = "flex";
+        // '데이터 없음' 응답 처리 (API가 빈 객체 또는 특정 메시지를 보낼 경우를 가정)
+        if (!result || Object.keys(result).length === 0 || !result.answer) {
+            document.getElementById("questionText").innerText = "질문: " + term;
+            document.getElementById("answerText").innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
+            document.getElementById("source").style.display = "none";
+            document.getElementById("noAnswerBox").style.display = "block";
+            document.getElementById("customRequestBox").style.display = "flex";
         } else {
-          const detailRes = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=" + encodeURIComponent(term));
-          const result = await detailRes.json();
-          const question = result.term || result["질문"] || term;
-          const answer = result.answer || result["답변"] || "";
-          const source = result.source || result["출처"] || "";
+            const question = result.term || result["질문"] || term;
+            const answer = result.answer || result["답변"] || "";
+            const source = result.source || result["출처"] || "";
 
-          document.getElementById("questionText").innerText = "질문: " + question;
-          document.getElementById("answerText").innerText = answer;
-          document.getElementById("source").innerText = source ? "출처: " + source : "";
-          document.getElementById("source").style.display = source ? "block" : "none";
-          document.getElementById("noAnswerBox").style.display = "none";
-          document.getElementById("customRequestBox").style.display = "none";
+            document.getElementById("questionText").innerText = "질문: " + question;
+            document.getElementById("answerText").innerText = answer;
+            document.getElementById("source").innerText = source ? "출처: " + source : "";
+            document.getElementById("source").style.display = source ? "block" : "none";
+            document.getElementById("noAnswerBox").style.display = "none";
+            document.getElementById("customRequestBox").style.display = "none";
         }
       } catch (err) {
         console.error("검색 오류:", err);
-        document.getElementById("statusMessage").innerText = "❌ 오류 발생";
+        statusMessage.innerText = "❌ 오류 발생";
+        document.getElementById("answerText").innerText = "답변을 불러오는 중 오류가 발생했습니다.";
       } finally {
         statusMessage.style.display = "none";
-        // 모든 작업이 끝난 후, 다음 입력을 위해 input 핸들러 차단을 확실히 해제
-        blockInputHandler = false;
+        searchBox.placeholder = "물류 무역 관련 용어를 입력하세요... (예: 피킹, export)";
       }
     }
+    
+    // 자동완성 목록을 그리는 함수
+    function renderSuggestions(terms, inputValue) {
+        suggestionsBox.innerHTML = "";
+        const uniqueTerms = [...new Set(terms)];
+        const filtered = uniqueTerms.filter(t => t.toLowerCase().startsWith(inputValue.toLowerCase())).slice(0, 10);
 
+        filtered.forEach(term => {
+            const div = document.createElement("div");
+            div.className = "suggestion";
+            div.innerText = term;
+
+            // mousedown 이벤트를 사용하여 blur 이벤트를 선점하고 취소를 막음
+            div.addEventListener("mousedown", (event) => {
+                // 1. 브라우저의 기본 동작(포커스 잃음 등)을 원천 차단
+                event.preventDefault();
+                // 2. 안전한 상태에서 검색 실행
+                handleSearch(term);
+            });
+            suggestionsBox.appendChild(div);
+        });
+    }
+
+    // 사용자 입력 이벤트 핸들러
+    searchBox.addEventListener("input", async (event) => {
+        const inputValue = event.target.value.trim();
+        if (!inputValue) {
+            suggestionsBox.innerHTML = "";
+            return;
+        }
+
+        try {
+            const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(inputValue));
+            const terms = await res.json();
+            renderSuggestions(terms, inputValue);
+        } catch (err) {
+            console.error("자동완성 오류:", err);
+        }
+    });
+
+    // 엔터 키 검색 이벤트 핸들러
+    searchBox.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && searchBox.value.trim()) {
+        handleSearch(searchBox.value.trim());
+      }
+    });
+
+    // 맞춤 요청 제출 함수
     function submitCustomRequest() {
-      const term = document.getElementById("customRequestInput").value.trim();
+      const customInput = document.getElementById("customRequestInput");
+      const term = customInput.value.trim();
       if (!term) return alert("내용을 입력해 주세요.");
+      
       fetch("https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/submitInquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -227,50 +266,12 @@
       .then(res => res.json())
       .then(data => {
         alert("✅ 요청이 접수되었습니다.");
-        document.getElementById("customRequestInput").value = "";
+        customInput.value = "";
       })
       .catch(err => {
         alert("❌ 전송 실패: " + err);
       });
     }
-
-    document.getElementById("searchBox").addEventListener("keydown", function (event) {
-      if (event.key === "Enter" && this.value.trim()) {
-        handleSearch(this.value.trim());
-      }
-    });
-
-    document.getElementById("searchBox").addEventListener("input", async function () {
-      if (blockInputHandler) {
-        return; // 코드에 의한 변경일 경우, 자동완성 로직을 실행하지 않음
-      }
-
-      const input = this.value.trim();
-      const suggestionsBox = document.getElementById("suggestions");
-      suggestionsBox.innerHTML = "";
-
-      if (!input) return;
-
-      try {
-        const res = await fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=" + encodeURIComponent(input));
-        const terms = await res.json();
-        const uniqueTerms = [...new Set(terms)];
-        const filtered = uniqueTerms.filter(t => t.toLowerCase().startsWith(input.toLowerCase())).slice(0, 10);
-
-        filtered.forEach(term => {
-          const div = document.createElement("div");
-          div.className = "suggestion";
-          div.innerText = term;
-          div.addEventListener("mousedown", function (event) {
-            event.preventDefault(); // mousedown의 기본 동작(포커스 이동 등)을 막아 안정성 확보
-            handleSearch(term);
-          });
-          suggestionsBox.appendChild(div);
-        });
-      } catch (err) {
-        console.error("자동완성 오류:", err);
-      }
-    });
   </script>
 </body>
 </html>
