@@ -175,7 +175,6 @@
 
   <div id="noAnswerBox"><span>제공된 답변이 없습니다</span></div>
 
-  <!-- 시작 시 숨김 -->
   <div id="customRequestBox" style="display: none;">
     <input id="customRequestInput" type="text" placeholder="물류 관련 기술용어를 입력해 주세요"/>
     <button onclick="submitCustomRequest()">제출하기</button>
@@ -190,42 +189,57 @@
 </footer>
 
 <script>
+let lastTerm = "";
+let debounceTimer;
+
 function updateClock() {
   const now = new Date();
   document.getElementById("clock").innerText = "🕒 " + now.toLocaleString("ko-KR");
 }
 setInterval(updateClock, 1000); updateClock();
 
-document.getElementById("searchBox").addEventListener("input", async function () {
-  const query = this.value.trim();
-  if (!query) {
-    document.getElementById("suggestions").innerHTML = "";
-    return;
-  }
-  try {
-    const res = await fetch(`https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/listTechTermsByPrefix?q=${encodeURIComponent(query)}`);
-    const raw = await res.json();
-    const data = typeof raw.body === "string" ? JSON.parse(raw.body) : raw;
-    const suggestions = document.getElementById("suggestions");
-    suggestions.innerHTML = "";
-    if (data.terms) {
-      data.terms.forEach(term => {
-        const li = document.createElement("li");
-        li.textContent = term;
-        li.onclick = () => {
-          document.getElementById("searchBox").value = "";
-          handleGPTSearch(term);
-          suggestions.innerHTML = "";
-        };
-        suggestions.appendChild(li);
-      });
+// 🔧 자동완성 드롭다운 + debounce
+document.getElementById("searchBox").addEventListener("input", function () {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    const query = this.value.trim();
+    if (!query) {
+      document.getElementById("suggestions").innerHTML = "";
+      return;
     }
-  } catch (err) {
-    console.error("자동완성 오류:", err);
-  }
+
+    try {
+      const res = await fetch(`https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/listTechTermsByPrefix?q=${encodeURIComponent(query)}`);
+      const raw = await res.json();
+      const data = typeof raw.body === "string" ? JSON.parse(raw.body) : raw;
+      const suggestions = document.getElementById("suggestions");
+      suggestions.innerHTML = "";
+
+      if (data.terms) {
+        data.terms.forEach(term => {
+          const li = document.createElement("li");
+          li.textContent = term;
+
+          li.addEventListener("mousedown", (e) => {
+            e.preventDefault(); // blur 방지
+            document.getElementById("searchBox").value = "";
+            suggestions.innerHTML = "";
+            handleGPTSearch(term);
+          });
+
+          suggestions.appendChild(li);
+        });
+      }
+    } catch (err) {
+      console.error("자동완성 오류:", err);
+    }
+  }, 150); // debounce 150ms
 });
 
 async function handleGPTSearch(term) {
+  if (!term || term === lastTerm) return;
+  lastTerm = term;
+
   document.getElementById("statusMessage").innerText = "답변 찾는 중...";
   document.getElementById("statusMessage").style.display = "block";
   document.getElementById("noAnswerBox").style.display = "none";
@@ -277,6 +291,7 @@ function submitCustomRequest() {
   });
 }
 
+// Enter 키 입력 시 검색
 document.getElementById("searchBox").addEventListener("keydown", function (event) {
   if (event.key === "Enter") {
     const term = this.value.trim();

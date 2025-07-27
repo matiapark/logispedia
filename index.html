@@ -65,28 +65,14 @@
       margin-bottom: 10px;
       color: #444;
     }
-    #questionText {
+    #questionText, #answerText, #source {
       margin-top: 20px;
       font-size: 16px;
       text-align: left;
       white-space: pre-line;
     }
-    #answerText {
-      margin-top: 20px;
-      font-size: 16px;
-      text-align: left;
-      white-space: pre-line;
-    }
-    #source {
-      margin-top: 20px;
-      font-size: 16px;
-      text-align: left;
-      white-space: pre-line;
-      display: none;
-    }
-    #noAnswerBox {
-      display: none;
-    }
+    #source { display: none; }
+    #noAnswerBox { display: none; }
     #customRequestBox {
       display: none;
       margin-top: 16px;
@@ -172,104 +158,106 @@
     }
     setInterval(updateClock, 1000);
     updateClock();
-    
+
     // 검색 실행 및 결과 표시 함수
     async function executeSearch(term) {
-        // UI 초기화
-        searchBox.value = ""; // 검색창을 비움
-        suggestionsBox.innerHTML = ""; // 제안 목록을 숨김
-        statusMessage.innerText = "답변 찾는 중...";
-        statusMessage.style.display = "block";
-        answerText.innerText = "";
-        questionText.innerText = "";
-        sourceText.innerText = "";
-        noAnswerBox.style.display = "none";
-        customRequestBox.style.display = "none";
+      searchBox.value = "";
+      suggestionsBox.innerHTML = "";
+      statusMessage.innerText = "답변 찾는 중...";
+      statusMessage.style.display = "block";
+      answerText.innerText = "";
+      questionText.innerText = "";
+      sourceText.innerText = "";
+      noAnswerBox.style.display = "none";
+      customRequestBox.style.display = "none";
 
-        try {
-            const response = await fetch(`https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=${encodeURIComponent(term)}`);
-            const result = await response.json();
+      try {
+        const response = await fetch(`https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=${encodeURIComponent(term)}`);
+        const result = await response.json();
 
-            if (!result || !result.answer) {
-                questionText.innerText = "질문: " + term;
-                answerText.innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
-                noAnswerBox.style.display = "block";
-                customRequestBox.style.display = "flex";
-            } else {
-                questionText.innerText = "질문: " + (result.term || term);
-                answerText.innerText = result.answer;
-                sourceText.innerText = result.source ? "출처: " + result.source : "";
-                sourceText.style.display = result.source ? "block" : "none";
-            }
-        } catch (error) {
-            console.error("Search error:", error);
-            answerText.innerText = "답변을 불러오는 중 오류가 발생했습니다.";
-        } finally {
-            statusMessage.style.display = "none";
+        if (!result || !result.answer) {
+          questionText.innerText = "질문: " + term;
+          answerText.innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
+          noAnswerBox.style.display = "block";
+          customRequestBox.style.display = "flex";
+        } else {
+          questionText.innerText = "질문: " + (result.term || term);
+          answerText.innerText = result.answer;
+          sourceText.innerText = result.source ? "출처: " + result.source : "";
+          sourceText.style.display = result.source ? "block" : "none";
         }
+      } catch (error) {
+        console.error("Search error:", error);
+        answerText.innerText = "답변을 불러오는 중 오류가 발생했습니다.";
+      } finally {
+        statusMessage.style.display = "none";
+      }
     }
 
-    // 사용자 입력에 따라 자동완성 목록을 가져와 표시
-    searchBox.addEventListener("input", async () => {
+    // 자동완성 + debounce
+    let debounceTimer;
+    searchBox.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
         const query = searchBox.value.trim();
         if (!query) {
-            suggestionsBox.innerHTML = "";
-            return;
+          suggestionsBox.innerHTML = "";
+          return;
         }
 
         try {
-            const response = await fetch(`https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=${encodeURIComponent(query)}`);
-            const terms = await response.json();
-            
-            suggestionsBox.innerHTML = "";
-            const uniqueTerms = [...new Set(terms)];
-            const filteredTerms = uniqueTerms.filter(t => t.toLowerCase().startsWith(query.toLowerCase())).slice(0, 10);
+          const response = await fetch(`https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/listTerms?q=${encodeURIComponent(query)}`);
+          const terms = await response.json();
 
-            filteredTerms.forEach(term => {
-                const div = document.createElement("div");
-                div.className = "suggestion";
-                div.innerText = term;
+          suggestionsBox.innerHTML = "";
+          const uniqueTerms = [...new Set(terms)];
+          const filteredTerms = uniqueTerms.filter(t => t.toLowerCase().startsWith(query.toLowerCase())).slice(0, 10);
 
-                // [핵심] mousedown으로 클릭을 감지하되, 즉시 실행하지 않음
-                div.addEventListener("mousedown", () => {
-                    // 이벤트 폭풍이 지나가도록 아주 잠깐의 시간을 줌
-                    setTimeout(() => {
-                        executeSearch(term);
-                    }, 50); // 50ms (0.05초) 지연으로 안정성 확보
-                });
-                suggestionsBox.appendChild(div);
+          filteredTerms.forEach(term => {
+            const div = document.createElement("div");
+            div.className = "suggestion";
+            div.innerText = term;
+
+            // ✅ 핵심 수정: 즉시 반응
+            div.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              setTimeout(() => {
+                executeSearch(term);
+              }, 50);
             });
+            suggestionsBox.appendChild(div);
+          });
         } catch (error) {
-            console.error("Autocomplete error:", error);
+          console.error("Autocomplete error:", error);
         }
+      }, 150); // debounce 150ms
     });
 
     // 엔터 키로 검색 실행
     searchBox.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && searchBox.value.trim()) {
-            executeSearch(searchBox.value.trim());
-        }
+      if (event.key === "Enter" && searchBox.value.trim()) {
+        executeSearch(searchBox.value.trim());
+      }
     });
 
     // 맞춤 요청 제출 함수
     function submitCustomRequest() {
-      const customInput = document.getElementById("customRequestInput");
-      const term = customInput.value.trim();
+      const term = customRequestInput.value.trim();
       if (!term) return alert("내용을 입력해 주세요.");
-      
-      fetch("https://dp3x06ffyf.execute-api.ap-northeast-2.amazonaws.com/prod/submitInquiry", {
+
+      fetch("https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/submitInquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ term })
       })
-      .then(res => res.json())
-      .then(data => {
-        alert("✅ 요청이 접수되었습니다.");
-        customInput.value = "";
-      })
-      .catch(err => {
-        alert("❌ 전송 실패: " + err);
-      });
+        .then(res => res.json())
+        .then(() => {
+          alert("✅ 요청이 접수되었습니다.");
+          customRequestInput.value = "";
+        })
+        .catch(err => {
+          alert("❌ 전송 실패: " + err);
+        });
     }
   </script>
 </body>
