@@ -123,7 +123,7 @@
     <div id="questionText"></div>
     <div id="answerText"></div>
     <div id="source"></div>
-    <div id="noAnswerBox" style="display: none;"></div>
+    <div id="noAnswerBox" style="display: none;"><span>제공된 답변이 없습니다</span></div>
     <div id="customRequestBox">
       <input id="customRequestInput" type="text" placeholder="원하는 정보를 입력해 주세요..." />
       <button onclick="submitCustomRequest()">제출하기</button>
@@ -175,16 +175,24 @@
         const response = await fetch(`https://ljmxrdnq97.execute-api.ap-northeast-2.amazonaws.com/prod/search?q=${encodeURIComponent(term)}`);
         const result = await response.json();
 
-        if (!result || !result.answer) {
-          questionText.innerText = "질문: " + term;
-          answerText.innerText = "데이터가 없는 질문입니다. 추가 요청하시면 검토 후 추가하도록 하겠습니다.";
-          noAnswerBox.style.display = "block";
-          customRequestBox.style.display = "flex";
+        const answer = result.answer || "";
+        questionText.innerText = "질문: " + (result.term || term);
+        answerText.innerText = answer;
+
+        if (answer.includes("데이터가 없는 질문입니다")) {
+            sourceText.style.display = "none";
+            noAnswerBox.style.display = "none";
+            customRequestBox.style.display = "flex";
+        } else if (!answer || answer.trim() === "") {
+            answerText.innerText = "";
+            sourceText.style.display = "none";
+            customRequestBox.style.display = "none";
+            noAnswerBox.style.display = "block";
         } else {
-          questionText.innerText = "질문: " + (result.term || term);
-          answerText.innerText = result.answer;
-          sourceText.innerText = result.source ? "출처: " + result.source : "";
-          sourceText.style.display = result.source ? "block" : "none";
+            sourceText.innerText = result.source ? "출처: " + result.source : "";
+            sourceText.style.display = result.source ? "block" : "none";
+            noAnswerBox.style.display = "none";
+            customRequestBox.style.display = "none";
         }
       } catch (error) {
         console.error("Search error:", error);
