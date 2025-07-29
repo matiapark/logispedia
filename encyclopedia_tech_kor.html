@@ -41,7 +41,7 @@
       margin: 0;
       border: 1px solid #ccc;
       border-top: none;
-      max-height: 180px;
+      max-height: 400px;
       overflow-y: auto;
     }
     #suggestions li {
@@ -216,7 +216,9 @@ document.getElementById("searchBox").addEventListener("input", function () {
       suggestions.innerHTML = "";
 
       if (data.terms) {
-        data.terms.forEach(term => {
+        const limitedTerms = data.terms.slice(0, 10);
+        
+        limitedTerms.forEach(term => {
           const li = document.createElement("li");
           li.textContent = term;
 
