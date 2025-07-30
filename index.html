@@ -40,7 +40,12 @@
     #searchBox::placeholder {
       font-size: 16px;
     }
-    #suggestions { text-align: left; }
+    #suggestions {
+      text-align: left;
+      /* [수정됨] max-height 값을 400px로 변경 */
+      max-height: 400px; /* 목록의 최대 높이 지정 */
+      overflow-y: auto;  /* 내용이 최대 높이를 넘어가면 세로 스크롤바 자동 표시 */
+    }
     .suggestion {
       padding: 8px;
       border: 1px solid #ccc;
@@ -219,14 +224,13 @@
 
           suggestionsBox.innerHTML = "";
           const uniqueTerms = [...new Set(terms)];
-          const filteredTerms = uniqueTerms.filter(t => t.toLowerCase().startsWith(query.toLowerCase())).slice(0, 10);
+          const filteredTerms = uniqueTerms.filter(t => t.toLowerCase().startsWith(query.toLowerCase()));
 
           filteredTerms.forEach(term => {
             const div = document.createElement("div");
             div.className = "suggestion";
             div.innerText = term;
 
-            // ✅ 핵심 수정: 즉시 반응
             div.addEventListener("mousedown", (e) => {
               e.preventDefault();
               setTimeout(() => {
